@@ -1,30 +1,57 @@
-class Solution {
-    public String convert(String s, int numRows) {
-        int size = s.length();
-        if (numRows == 1 || numRows >= size) {
-            return s;
-        }
-        char[] chars = s.toCharArray();
+import java.util.Scanner;
 
-        Map<Integer, String> result = new HashMap<>();
-        int row = 1;
-        boolean up = true;
-        for (int i = 0; i < s.length(); i++) {
-            result.merge(row, String.valueOf(chars[i]), String::concat);
-            if (up) {
-                row++;
-            } else {
-                row--;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        System.out.println("-----------------------------------");
+        System.out.println("            Simple Calculator");
+        System.out.println("-----------------------------------");
+
+        System.out.print("First Number : ");
+        double num1 = sc.nextDouble();
+
+        System.out.print("Second Number : ");
+        double num2 = sc.nextDouble();
+
+        System.out.print("Click : ");
+        String operation = sc.next();
+
+        double result = 0;
+        boolean valid = true;
+
+        try {
+            switch (operation) {
+                case "Add":
+                    result = num1 + num2;
+                    break;
+                case "Sub":
+                    result = num1 - num2;
+                    break;
+                case "Mul":
+                    result = num1 * num2;
+                    break;
+                case "Divide":
+                    if (num2 == 0) {
+                        System.out.println("Result : Cannot divide by zero");
+                        valid = false;
+                    } else {
+                        result = num1 / num2;
+                    }
+                    break;
+                default:
+                    System.out.println("Result : Invalid operation");
+                    valid = false;
             }
-            if (row == numRows || row == 1) {
-                up = !up;
-            }
+        } catch (Exception e) {
+            System.out.println("Result : Invalid input");
+            valid = false;
         }
 
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < numRows; i++) {
-            sb.append(result.get(i + 1));
+        if (valid) {
+            System.out.println("Result : " + result);
         }
-        return sb.toString();
+
+        sc.close();
     }
 }
