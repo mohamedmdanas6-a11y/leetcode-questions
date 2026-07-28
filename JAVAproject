@@ -1,0 +1,418 @@
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+import java.util.List;
+
+public class Main extends Frame implements ActionListener {
+    // ---------- UI components ----------
+    TextField nameField, ageField;
+    Choice genderChoice, communityChoice, educationChoice, loanChoice;
+    Button findButton, clearButton;
+    TextArea resultArea;
+
+    public Main() {
+        setTitle("Tamil Nadu / India Scholarship Finder");
+        setLayout(new BorderLayout(10, 10));
+
+        // ---------- Form panel (top) ----------
+        Panel formPanel = new Panel(new GridLayout(7, 2, 8, 8));
+
+        formPanel.add(new Label("Name:"));
+        nameField = new TextField();
+        formPanel.add(nameField);
+
+        formPanel.add(new Label("Age:"));
+        ageField = new TextField();
+        formPanel.add(ageField);
+
+        formPanel.add(new Label("Gender:"));
+        genderChoice = new Choice();
+        genderChoice.add("Male");
+        genderChoice.add("Female");
+        genderChoice.add("Transgender");
+        formPanel.add(genderChoice);
+
+        formPanel.add(new Label("Community:"));
+        communityChoice = new Choice();
+        communityChoice.add("General");
+        communityChoice.add("SC");
+        communityChoice.add("ST");
+        communityChoice.add("BC");
+        communityChoice.add("MBC");
+        communityChoice.add("DNC");
+        communityChoice.add("Minority");
+        formPanel.add(communityChoice);
+
+        formPanel.add(new Label("Education Qualification:"));
+        educationChoice = new Choice();
+        educationChoice.add("School");
+        educationChoice.add("Diploma");
+        educationChoice.add("UG");
+        educationChoice.add("PG");
+        educationChoice.add("PhD");
+        formPanel.add(educationChoice);
+
+        formPanel.add(new Label("Need Bank Loan?"));
+        loanChoice = new Choice();
+        loanChoice.add("No");
+        loanChoice.add("Yes");
+        formPanel.add(loanChoice);
+
+        Panel buttonPanel = new Panel(new FlowLayout());
+        findButton = new Button("Find Scholarships");
+        clearButton = new Button("Clear");
+        findButton.addActionListener(this);
+        clearButton.addActionListener(this);
+        buttonPanel.add(findButton);
+        buttonPanel.add(clearButton);
+        formPanel.add(new Label("")); // spacer
+        formPanel.add(buttonPanel);
+
+        add(formPanel, BorderLayout.NORTH);
+
+        // ---------- Result area (center) ----------
+        resultArea = new TextArea("", 15, 60, TextArea.SCROLLBARS_VERTICAL_ONLY);
+        resultArea.setEditable(false);
+        add(resultArea, BorderLayout.CENTER);
+
+        // ---------- Window controls ----------
+        addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                dispose();
+                System.exit(0);
+            }
+        });
+
+        setSize(600, 550);
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+
+    // ---------- Button controller ----------
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == findButton) {
+            findScholarships();
+        } else if (e.getSource() == clearButton) {
+            clearForm();
+        }
+    }
+
+    void findScholarships() {
+        String name = nameField.getText().trim();
+        String ageText = ageField.getText().trim();
+
+        if (name.isEmpty() || ageText.isEmpty()) {
+            resultArea.setText("Please enter Name and Age before searching.");
+            return;
+        }
+
+        int age;
+        try {
+            age = Integer.parseInt(ageText);
+        } catch (NumberFormatException ex) {
+            resultArea.setText("Age must be a number.");
+            return;
+        }
+
+        String gender = genderChoice.getSelectedItem();
+        String community = communityChoice.getSelectedItem();
+        String education = educationChoice.getSelectedItem();
+        boolean wantsLoan = loanChoice.getSelectedItem().equalsIgnoreCase("Yes");
+
+        List<Scholarship> eligibleScholarships = new ArrayList<>();
+        List<Scholarship> eligibleLoans = new ArrayList<>();
+        for (Scholarship s : buildSchemeList()) {
+            if (s.matches(age, gender, community, education)) {
+                if (s.type.equalsIgnoreCase("Loan")) {
+                    eligibleLoans.add(s);
+                } else {
+                    eligibleScholarships.add(s);
+                }
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Name        : ").append(name).append("\n");
+        sb.append("Age         : ").append(age).append("\n");
+        sb.append("Gender      : ").append(gender).append("\n");
+        sb.append("Community   : ").append(community).append("\n");
+        sb.append("Education   : ").append(education).append("\n");
+        sb.append("Bank Loan   : ").append(loanChoice.getSelectedItem()).append("\n");
+        sb.append("---------------------------------------------\n\n");
+
+        // ---------- Scholarship section ----------
+        sb.append("SCHOLARSHIP DETAILS\n");
+        sb.append("---------------------------------------------\n");
+        if (eligibleScholarships.isEmpty()) {
+            sb.append("No matching scholarships found in this list.\n\n");
+        } else {
+            sb.append("Eligible for ").append(eligibleScholarships.size()).append(" scholarship(s):\n\n");
+            int i = 1;
+            for (Scholarship s : eligibleScholarships) {
+                sb.append(i++).append(". ").append(s.name)
+                        .append("  -  ").append(s.amount).append("\n");
+            }
+            sb.append("\n");
+        }
+
+        // ---------- Education Loan section (only if requested) ----------
+        if (wantsLoan) {
+            sb.append("BANK LOAN DETAILS\n");
+            sb.append("---------------------------------------------\n");
+            if (eligibleLoans.isEmpty()) {
+                sb.append("No matching bank loan schemes found in this list.\n\n");
+            } else {
+                sb.append("Eligible for ").append(eligibleLoans.size()).append(" loan scheme(s):\n\n");
+                int i = 1;
+                for (Scholarship s : eligibleLoans) {
+                    sb.append(i++).append(". ").append(s.name)
+                            .append("  -  ").append(s.amount).append("\n");
+                }
+                sb.append("\n");
+            }
+        }
+
+        sb.append("Note: Verify final eligibility and deadlines on the official\n");
+        sb.append("TN Scholarship Portal / scholarships.gov.in before applying.");
+
+        resultArea.setText(sb.toString());
+    }
+
+    void clearForm() {
+        nameField.setText("");
+        ageField.setText("");
+        genderChoice.select(0);
+        communityChoice.select(0);
+        educationChoice.select(0);
+        loanChoice.select(0);
+        resultArea.setText("");
+    }
+
+    // ---------- main ----------
+    public static void main(String[] args) {
+        new Main();
+    }
+
+    // ---------- Scholarship data model ----------
+    static class Scholarship {
+        String name;
+        String[] allowedGenders;
+        String[] allowedCommunities;
+        String[] allowedEducation;
+        int minAge, maxAge;
+        String amount;
+        String type; // "Scholarship" or "Loan"
+
+        Scholarship(String name, String[] genders, String[] communities,
+                    String[] education, int minAge, int maxAge, String amount) {
+            this(name, genders, communities, education, minAge, maxAge, amount, "Scholarship");
+        }
+
+        Scholarship(String name, String[] genders, String[] communities,
+                    String[] education, int minAge, int maxAge, String amount, String type) {
+            this.name = name;
+            this.allowedGenders = genders;
+            this.allowedCommunities = communities;
+            this.allowedEducation = education;
+            this.minAge = minAge;
+            this.maxAge = maxAge;
+            this.amount = amount;
+            this.type = type;
+        }
+
+        boolean matches(int age, String gender, String community, String education) {
+            if (age < minAge || age > maxAge) return false;
+            if (!contains(allowedGenders, gender)) return false;
+            if (!contains(allowedCommunities, community)) return false;
+            if (!contains(allowedEducation, education)) return false;
+            return true;
+        }
+
+        private boolean contains(String[] arr, String value) {
+            for (String s : arr) {
+                if (s.equalsIgnoreCase("Any") || s.equalsIgnoreCase(value)) return true;
+            }
+            return false;
+        }
+    }
+
+    static final String[] ANY_GENDER = {"Any"};
+    static final String[] ANY_COMMUNITY = {"Any"};
+    static final String[] ANY_EDU = {"Any"};
+
+    // ---------- Scheme database ----------
+    static List<Scholarship> buildSchemeList() {
+        List<Scholarship> list = new ArrayList<>();
+
+        // ---- Tamil Nadu state schemes ----
+        list.add(new Scholarship(
+                "TN First Graduate Scholarship",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"UG"}, 16, 30,
+                "Tuition fee concession ~Rs.25,000-27,500/year"));
+
+        list.add(new Scholarship(
+                "TN BC/MBC/DNC Scholarship",
+                ANY_GENDER, new String[]{"BC", "MBC", "DNC"}, new String[]{"UG", "PG"}, 16, 30,
+                "Up to Rs.10,000/year"));
+
+        list.add(new Scholarship(
+                "TN SC/ST Post-Matric Scholarship",
+                ANY_GENDER, new String[]{"SC", "ST"}, new String[]{"UG", "PG", "Diploma"}, 15, 30,
+                "Full fee waiver + stipend, up to Rs.60,000/year"));
+
+        list.add(new Scholarship(
+                "E.V.R. Nagammaiyar Scholarship",
+                new String[]{"Female"}, ANY_COMMUNITY, new String[]{"PG"}, 18, 35,
+                "Variable, covers tuition/academic expenses"));
+
+        list.add(new Scholarship(
+                "Moovalur Ramamirtham Ammaiyar Scheme",
+                ANY_GENDER, new String[]{"BC", "MBC"}, new String[]{"UG", "PG"}, 16, 30,
+                "Support for first-generation graduates"));
+
+        list.add(new Scholarship(
+                "Pudhumai Penn Scheme",
+                new String[]{"Female"}, ANY_COMMUNITY, new String[]{"UG"}, 16, 25,
+                "Rs.1,000/month for girl students from govt schools"));
+
+        list.add(new Scholarship(
+                "TN Innova Scholarship (Merit)",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"UG", "PG"}, 16, 30,
+                "Merit-based financial assistance"));
+
+        list.add(new Scholarship(
+                "Vidyadhan TN Plus 1 Scholarship",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"School"}, 14, 18,
+                "Financial assistance + mentoring, Class 11-12"));
+
+        // ---- Central / NSP schemes ----
+        list.add(new Scholarship(
+                "Central Sector Scheme of Scholarships",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"UG"}, 17, 25,
+                "Rs.12,000-20,000/year"));
+
+        list.add(new Scholarship(
+                "Post Matric Scholarship for SC Students (Central)",
+                ANY_GENDER, new String[]{"SC"}, new String[]{"UG", "PG"}, 15, 35,
+                "Full tuition + living allowance"));
+
+        list.add(new Scholarship(
+                "Post Matric Scholarship for ST Students (Central)",
+                ANY_GENDER, new String[]{"ST"}, new String[]{"UG", "PG", "PhD"}, 15, 35,
+                "Full tuition + living allowance"));
+
+        list.add(new Scholarship(
+                "Pre Matric Scholarship for Minorities",
+                ANY_GENDER, new String[]{"Minority"}, new String[]{"School"}, 10, 17,
+                "Rs.3,000-12,000/year"));
+
+        list.add(new Scholarship(
+                "Post Matric Scholarship for Minorities",
+                ANY_GENDER, new String[]{"Minority"}, new String[]{"UG", "PG"}, 16, 30,
+                "Tuition + monthly stipend Rs.500-1,500"));
+
+        list.add(new Scholarship(
+                "Merit-cum-Means Scholarship for Minorities",
+                ANY_GENDER, new String[]{"Minority"}, new String[]{"UG", "PG"}, 17, 30,
+                "Rs.20,000-25,000/year + hostel support"));
+
+        list.add(new Scholarship(
+                "AICTE Pragati Scholarship for Girl Students",
+                new String[]{"Female"}, ANY_COMMUNITY, new String[]{"UG", "Diploma"}, 16, 30,
+                "Rs.50,000/year"));
+
+        list.add(new Scholarship(
+                "AICTE Saksham Scholarship (Specially Abled)",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"UG", "Diploma"}, 16, 30,
+                "Rs.60,000/year"));
+
+        list.add(new Scholarship(
+                "AICTE Swanath Scholarship",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"Diploma"}, 16, 30,
+                "Rs.50,000/year"));
+
+        list.add(new Scholarship(
+                "INSPIRE Scholarship for Higher Education (SHE)",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"UG"}, 17, 22,
+                "Rs.5 lakh/year (tuition + stipend), science students"));
+
+        list.add(new Scholarship(
+                "Indira Gandhi Scholarship for Single Girl Child",
+                new String[]{"Female"}, ANY_COMMUNITY, new String[]{"PG"}, 18, 30,
+                "Rs.5,000/month"));
+
+        list.add(new Scholarship(
+                "Maulana Azad National Fellowship for Minorities",
+                ANY_GENDER, new String[]{"Minority"}, new String[]{"PhD"}, 20, 40,
+                "Full doctoral support with monthly fellowship"));
+
+        list.add(new Scholarship(
+                "Rajiv Gandhi National Fellowship for SC Students",
+                ANY_GENDER, new String[]{"SC"}, new String[]{"PhD"}, 20, 40,
+                "Monthly stipend + research + contingency grant"));
+
+        list.add(new Scholarship(
+                "National Fellowship for OBC Students",
+                ANY_GENDER, new String[]{"BC", "MBC"}, new String[]{"PhD"}, 20, 40,
+                "Full monthly fellowship + research grant"));
+
+        list.add(new Scholarship(
+                "PM YASASVI Scholarship",
+                ANY_GENDER, new String[]{"BC", "MBC", "DNC", "General"}, new String[]{"School", "UG"}, 14, 25,
+                "Rs.1,00,000-1,25,000/year"));
+
+        list.add(new Scholarship(
+                "National Talent Search Examination (NTSE) Scholarship",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"School", "UG", "PG"}, 14, 25,
+                "Rs.1,250/month (UG), flexible for PG/PhD"));
+
+        // ---- Private / foundation ----
+        list.add(new Scholarship(
+                "Tamil Nadu Foundation Pre/Post Matric Scholarship",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"School", "UG"}, 10, 25,
+                "Based on merit and financial need"));
+
+        list.add(new Scholarship(
+                "Sitaram Jindal Foundation Scholarship",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"UG", "PG"}, 16, 30,
+                "Rs.50,000-3,00,000/year"));
+
+        list.add(new Scholarship(
+                "HDFC Bank Parivartan ECSS Scholarship",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"UG"}, 16, 30,
+                "Up to Rs.5,00,000 in extreme hardship cases"));
+
+        // ---- Bank Loan schemes ----
+        list.add(new Scholarship(
+                "Vidya Lakshmi Education Loan (Model Loan Scheme)",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"UG", "PG", "Diploma", "PhD"}, 16, 35,
+                "Collateral-free loan up to Rs.7,50,000 via banks on Vidya Lakshmi portal", "Loan"));
+
+        list.add(new Scholarship(
+                "Central Sector Interest Subsidy Scheme (CSIS)",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"UG", "PG"}, 16, 30,
+                "Full interest subsidy during moratorium for EWS education loan (income proof needed)", "Loan"));
+
+        list.add(new Scholarship(
+                "Dr. Ambedkar Central Sector Scheme (Interest Subsidy)",
+                ANY_GENDER, new String[]{"BC", "MBC", "DNC"}, new String[]{"UG", "PG"}, 16, 35,
+                "Interest subsidy on education loans for OBC/EBC students studying abroad", "Loan"));
+
+        list.add(new Scholarship(
+                "Padho Pardesh Interest Subsidy (Minorities)",
+                ANY_GENDER, new String[]{"Minority"}, new String[]{"UG", "PG"}, 16, 35,
+                "Full interest subsidy on education loans for minority students studying abroad", "Loan"));
+
+        list.add(new Scholarship(
+                "Top-Class Education Loan Scheme (SC/ST)",
+                ANY_GENDER, new String[]{"SC", "ST"}, new String[]{"UG", "PG"}, 16, 35,
+                "Full interest subsidy + fee support for SC/ST students in premier institutions", "Loan"));
+
+        list.add(new Scholarship(
+                "TN Government Education Loan Interest Subvention",
+                ANY_GENDER, ANY_COMMUNITY, new String[]{"UG", "PG", "Diploma"}, 16, 30,
+                "State interest subvention on bank education loans for TN students", "Loan"));
+
+        return list;
+    }
+}
